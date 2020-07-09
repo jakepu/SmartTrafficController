@@ -1,3 +1,7 @@
+# start timing for performance evaluation
+from datetime import datetime # time execution time
+startTime = datetime.now()
+
 import picamera
 from picamera.array import PiRGBArray 
 import time
@@ -38,9 +42,10 @@ image = Image.open(image_path)
 image_cv = cv2.imread(image_path)
 input_data = np.asarray([np.asarray(image)])
 interpreter.set_tensor(input_details[0]['index'], input_data)
-
+startTime_invoke = datetime.now()
 interpreter.invoke()
-
+print('Inference time:')
+print(datetime.now() - startTime_invoke)
 # The function `get_tensor()` returns a copy of the tensor data.
 # Use `tensor()` in order to get a pointer to the tensor.
 boxes = interpreter.get_tensor(output_details[0]['index'])[0]
@@ -77,6 +82,10 @@ for i in range(len(scores)):
         label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
         cv2.rectangle(image_cv, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) # Draw white box to put label text in
         cv2.putText(image_cv, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 0), 1) # Draw label text
+
+# stop timing
+print('Total execution time:')
+print(datetime.now() - startTime)
 
 # All the results have been drawn on the image, now display the image
 cv2.imshow('Object detector', image_cv)
