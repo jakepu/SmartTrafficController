@@ -1,9 +1,9 @@
 import picamera
 from picamera.array import PiRGBArray 
+from threading import Thread
 import time
 import numpy as np
 import tensorflow as tf
-from PIL import Image
 import cv2
 
 class VideoStream:
@@ -74,14 +74,11 @@ time.sleep(1)
 
 while True:
 
-    # Start timer (for calculating frame rate)
-    t1 = cv2.getTickCount()
-
     # Get the most recent frame
     frame_cur = videostream.read()
     frame = frame_cur.copy()
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    frame_resized = cv2.resize(frame_rgb, (input_shape[0], input_shape[1]))
+    frame_resized = cv2.resize(frame_rgb, (imW, imH))
     input_data = np.expand_dims(frame_resized, axis=0)
 
     # Perform the actual detection by running the model with the image as input
@@ -97,24 +94,24 @@ while True:
     num = interpreter.get_tensor(output_details[3]['index'])[0]
 
     for i in range(len(scores)):
-    if (scores[i] > min_conf_threshold):
+        if (scores[i] > min_conf_threshold):
 
-        # Get bounding box coordinates and draw box
-        # Interpreter can return coordinates that are outside of image dimensions, need to force them to be within image using max() and min()
-        ymin = int(max(1,(boxes[i][0] * imH)))
-        xmin = int(max(1,(boxes[i][1] * imW)))
-        ymax = int(min(imH,(boxes[i][2] * imH)))
-        xmax = int(min(imW,(boxes[i][3] * imW)))
-        
-        cv2.rectangle(image_cv, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
+            # Get bounding box coordinates and draw box
+            # Interpreter can return coordinates that are outside of image dimensions, need to force them to be within image using max() and min()
+            ymin = int(max(1,(boxes[i][0] * imH)))
+            xmin = int(max(1,(boxes[i][1] * imW)))
+            ymax = int(min(imH,(boxes[i][2] * imH)))
+            xmax = int(min(imW,(boxes[i][3] * imW)))
+            
+            cv2.rectangle(frame, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
 
-        # Draw label
-        object_name = labels[int(classes[i])] # Look up object name from "labels" array using class index
-        label = '%s: %d%%' % (object_name, int(scores[i]*100)) # Example: 'person: 72%'
-        labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.3, 1) # Get font size
-        label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
-        cv2.rectangle(image_cv, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) # Draw white box to put label text in
-        cv2.putText(image_cv, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 0), 1) # Draw label text
+            # Draw label
+            object_name = labels[int(classes[i])] # Look up object name from "labels" array using class index
+            label = '%s: %d%%' % (object_name, int(scores[i]*100)) # Example: 'person: 72%'
+            labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.3, 1) # Get font size
+            label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
+            cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) # Draw white box to put label text in
+            cv2.putText(frame, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 0), 1) # Draw label text
 
     cv2.imshow('Object detector', frame)
 
