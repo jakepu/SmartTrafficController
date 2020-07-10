@@ -8,7 +8,7 @@ import cv2
 
 class VideoStream:
     """Camera object that controls video streaming from the Picamera"""
-    def __init__(self, resolution=(640, 480), framerate=32):
+    def __init__(self, resolution=(640, 480), framerate=5):
         # Initialize PiCamera and the camera stream
         self.stream = cv2.VideoCapture(0)
         ret = self.stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
@@ -52,7 +52,6 @@ min_conf_threshold = 0.5    # 0.35 seems to work well with traffic pic
 imH = 320
 imW = 320
 PATH_TO_LABELS = 'labelmap.txt'
-#image_path = 'test_image3.jpg'
 
 # Load the label map
 with open(PATH_TO_LABELS, 'r') as f:
@@ -73,7 +72,7 @@ frame_rate = 1
 freq = cv2.getTickFrequency()
 
 # Initialize video stream
-videostream = VideoStream(resolution=(imW,imH),framerate=32).start()
+videostream = VideoStream(resolution=(imW,imH),framerate=5).start()
 time.sleep(1)
 
 while True:
