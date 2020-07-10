@@ -2,7 +2,6 @@ import picamera
 from picamera.array import PiRGBArray 
 from threading import Thread
 import time
-import copy
 import numpy as np
 import tensorflow as tf
 import cv2
@@ -69,11 +68,18 @@ output_details = interpreter.get_output_details()
 
 input_shape = input_details[0]['shape']
 
+# Initialize frame rate calculation
+frame_rate = 1
+freq = cv2.getTickFrequency()
+
 # Initialize video stream
 videostream = VideoStream(resolution=(imW,imH),framerate=32).start()
 time.sleep(1)
 
 while True:
+
+    # Start timer (for calculating frame rate)
+    time_start = cv2.getTickCount()
 
     # Get the most recent frame
     frame_cur = videostream.read()
@@ -114,7 +120,15 @@ while True:
             cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) # Draw white box to put label text in
             cv2.putText(frame, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 0), 1) # Draw label text
 
+    # Draw framerate
+    cv2.putText(frame,'FPS: {0:.2f}'.format(frame_rate),(30,50),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,0),2,cv2.LINE_AA)
+
     cv2.imshow('Object detector', frame)
+
+    # Calculate framerate
+    time_end = cv2.getTickCount()
+    total = (time_end - time_start) / freq
+    frame_rate = 1 / total
 
     # Press 'q' to quit
     if cv2.waitKey(1) == ord('q'):
