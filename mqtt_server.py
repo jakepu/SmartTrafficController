@@ -27,14 +27,11 @@ def current_station():
 def read_message():
     global stations_dict, payload 
     hostname, _, traffic = payload.partition(': Traffic - ')
-    try:
-        stations_dict[hostname] = int(traffic)
-        online_stations.append(hostname)
-        #wait_dict[hostname] = 1+wait_dict[hostname] if hostname in wait_dict else 1
-        if hostname not in wait_dict:
-            wait_dict[hostname] = 0
-    except:
-        pass
+    stations_dict[hostname] = int(traffic)
+    online_stations.append(hostname)
+    #wait_dict[hostname] = 1+wait_dict[hostname] if hostname in wait_dict else 1
+    if hostname not in wait_dict:
+        wait_dict[hostname] = 0
 
 # table of function to call when processing incoming message
 switcher = {"Traffic": read_message, "Current_Station": current_station}
@@ -47,13 +44,13 @@ def on_connect(client, userdata, flags, rc):
     # reconnect then subscriptions will be renewed.
     client.subscribe("Traffic")
     client.subscribe("Current_Station")
-    client.subscribe("Request")
+    #client.subscribe("Request")
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
     global payload, switcher
-    payload = msg.payload
+    payload = msg.payload.decode()
     print('msg.topic: ', msg.topic, 'msg.payload: ', msg.payload)
-    func = switcher[msg.topic]
+    func = switcher.get(msg.topic)
     func()
 
 def request():
@@ -65,10 +62,10 @@ def status_update():
     global hostname, traffic, stations_dict
     while True:
         request()
-        sleep(2) # wait for other stations to feedback their traffic
+        sleep(5) # wait for other stations to feedback their traffic
         stations_dict[hostname] = int(traffic) # input the server's own traffic
         choose_current_station()
-        sleep(5)
+        sleep(30)
 status_update_process = Process(target = status_update)
 
 def choose_current_station():
