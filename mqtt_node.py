@@ -14,7 +14,7 @@ def current_station():
     else:
         is_go = False
 def request_received():
-    global payload, hostname
+    global client, payload, hostname
     payload = hostname + ": Traffic - " + str(traffic)
     client.publish("Traffic", payload = payload)
 
@@ -36,6 +36,7 @@ def on_message(client, userdata, msg):
     switcher[msg.topic]
 
 def init():
+    global client, hostname, machine_number
     client.on_connect = on_connect
     client.on_message = on_message
 
@@ -46,7 +47,8 @@ def init():
     # handles reconnecting.
     # Other loop*() functions are available that give a threaded interface and a
     # manual interface.
-    client.loop_start()
+    #client.loop_start()
+    client.loop_forever()
     #client.loop_stop()
 def update_traffic(num):
     global traffic

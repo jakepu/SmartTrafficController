@@ -16,6 +16,7 @@ payload = ""
 traffic = 0
 wait_dict = {}
 online_stations = []
+client = mqtt.Client()
 def current_station():
     global is_go, machine_number
     if payload == machine_number:
@@ -48,18 +49,19 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe("Request")
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
-    global payload
+    global payload, switcher
     payload = msg.payload
     switcher[msg.topic]
 
 def request():
+    global client, stations_dict, online_stations
     stations_dict.clear()
     online_stations.clear()
     client.publish("Request", 1)
 def status_update():
-    global hostname,traffic
+    global hostname, traffic, stations_dict
     request()
-    sleep(15) # wait for other stations to feedback their traffic
+    sleep(5) # wait for other stations to feedback their traffic
     stations_dict[hostname] = int(traffic) # input the server's own traffic
     choose_current_station()
 def choose_current_station():
@@ -71,31 +73,29 @@ def choose_current_station():
             longest_wait = wait_dict[station]
     if longest_wait > 0:
         wait_dict[station] = 0
+        print('current station: ', current_station)
         return current_station
     rank = sorted(stations_dict.items(), key= lambda item: item[1], reverse=True)
     for i in range(len(rank)):
         if rank[i][0] in online_stations:
             current_station = rank[i][0]
             break
+    print('current station: ', current_station)
     return current_station
 def init():
-    client = mqtt.Client()
+    global client
     client.on_connect = on_connect
     client.on_message = on_message
 
     client.connect("stc1", 1883, 60)
 
     # start a thread to handle network traffic
-    client.loop_start()
-
-    # Unresovled issues:
-    # how to read information from this device and add it to the dict
-    # how to request other node devices for information
-
-    threading.Timer(60, status_update)
+    #client.loop_start()
+    threading.Timer(20, status_update)
+    client.loop_forever()
 def update_traffic(num):
     global traffic
     traffic = num
 if __name__ == '__main__':
-    traffic = int(input('Please type a number to setup traffic for current device'))
+    traffic = int(input('Please type a number to setup traffic for current device: '))
     init()
