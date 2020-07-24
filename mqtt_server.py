@@ -34,7 +34,9 @@ def read_message():
     except:
         pass
 
+# table of function to call when processing incoming message
 switcher = {"Traffic": read_message, "Current_Station": current_station}
+
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc))
@@ -61,7 +63,7 @@ def status_update():
     stations_dict[hostname] = int(traffic) # input the server's own traffic
     choose_current_station()
 def choose_current_station():
-    current_station = 'stc0'
+    current_station = 'stc1'
     longest_wait = 0
     for station in online_stations:
         if wait_dict[station] >= 3:
@@ -76,18 +78,24 @@ def choose_current_station():
             current_station = rank[i][0]
             break
     return current_station
+def init():
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_message = on_message
 
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
+    client.connect("stc1", 1883, 60)
 
-client.connect("stc1", 1883, 60)
+    # start a thread to handle network traffic
+    client.loop_start()
 
-# start a thread to handle network traffic
-client.loop_start()
+    # Unresovled issues:
+    # how to read information from this device and add it to the dict
+    # how to request other node devices for information
 
-# Unresovled issues:
-# how to read information from this device and add it to the dict
-# how to request other node devices for information
-
-threading.Timer(60, status_update)
+    threading.Timer(60, status_update)
+def update_traffic(num):
+    global traffic
+    traffic = num
+if __name__ == '__main__':
+    traffic = int(input('Please type a number to setup traffic for current device'))
+    init()
