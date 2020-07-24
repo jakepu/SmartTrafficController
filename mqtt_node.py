@@ -37,7 +37,9 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     global payload, switcher
     payload = msg.payload
-    switcher[msg.topic]
+    print('msg.topic: ', msg.topic, '\n', 'msg.payload: ', msg.payload)
+    func = switcher[msg.topic]
+    func()
 
 def init():
     global client, hostname, machine_number

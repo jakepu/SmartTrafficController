@@ -2,7 +2,8 @@
 
 import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
-import threading
+from multiprocessing import Process
+#from threading import Thread
 from time import sleep
 import re
 import socket # socket.gethostname()
@@ -51,7 +52,9 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     global payload, switcher
     payload = msg.payload
-    switcher[msg.topic]
+    print('msg.topic: ', msg.topic, 'msg.payload: ', msg.payload)
+    func = switcher[msg.topic]
+    func()
 
 def request():
     global client, stations_dict, online_stations
@@ -60,11 +63,16 @@ def request():
     client.publish("Request", 1)
 def status_update():
     global hostname, traffic, stations_dict
-    request()
-    sleep(5) # wait for other stations to feedback their traffic
-    stations_dict[hostname] = int(traffic) # input the server's own traffic
-    choose_current_station()
+    while True:
+        request()
+        sleep(2) # wait for other stations to feedback their traffic
+        stations_dict[hostname] = int(traffic) # input the server's own traffic
+        choose_current_station()
+        sleep(5)
+status_update_process = Process(target = status_update)
+
 def choose_current_station():
+    global stations_dict, online_stations, wait_dict, traffic
     current_station = 'stc1'
     longest_wait = 0
     for station in online_stations:
@@ -77,13 +85,13 @@ def choose_current_station():
         return current_station
     rank = sorted(stations_dict.items(), key= lambda item: item[1], reverse=True)
     for i in range(len(rank)):
-        if rank[i][0] in online_stations:
+        if rank[i][0] in online_stations and rank[i][1] > traffic:
             current_station = rank[i][0]
             break
     print('current station: ', current_station)
     return current_station
 def init():
-    global client, status_update_timer
+    global client, status_update_process
     client.on_connect = on_connect
     client.on_message = on_message
 
@@ -91,18 +99,23 @@ def init():
 
     # start a thread to handle network traffic
     client.loop_start()
-    status_update_timer = threading.Timer(20, status_update)
+    status_update_process.start()
 def stop():
-    global client
+    global client, status_update_process
     client.loop_stop()
-    status_update_timer.cancel()
+    status_update_process.terminate()
 def update_traffic(num):
     global traffic
     traffic = num
+def test_print():
+    print('prints every 5 secs')
 if __name__ == '__main__':
+    from threading import Thread
     traffic = int(input('Please type a number to setup traffic for current device: '))
+    status_update_thread = Thread(target = status_update)
     client.on_connect = on_connect
     client.on_message = on_message
     client.connect("stc1", 1883, 60)
-    threading.Timer(20, status_update)
-    client.loop_forever()
+    client.loop_start()
+    status_update_thread.start()
+    
