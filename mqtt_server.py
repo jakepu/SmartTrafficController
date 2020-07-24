@@ -6,8 +6,8 @@ from multiprocessing import Process
 #from threading import Thread
 from time import sleep
 import re
-import socket # socket.gethostname()
-hostname = socket.gethostname()
+from socket import gethostname
+hostname = gethostname() # should be stc1
 machine_number = re.search(r'\d+', hostname).group()
 NUM_STATIONS = 2
 count = NUM_STATIONS
@@ -54,46 +54,49 @@ def on_message(client, userdata, msg):
     func()
 
 def request():
-    global client, stations_dict, online_stations
+    global client, stations_dict, online_stations, hostname
     stations_dict.clear()
-    online_stations.clear()
+    online_stations = [hostname]
     client.publish("Request", 1)
 def status_update():
     global hostname, traffic, stations_dict
     while True:
         request()
-        sleep(5) # wait for other stations to feedback their traffic
+        sleep(2) # wait for other stations to feedback their traffic
         stations_dict[hostname] = int(traffic) # input the server's own traffic
         choose_current_station()
-        sleep(30)
+        sleep(5)
 status_update_process = Process(target = status_update)
 
 def choose_current_station():
-    global stations_dict, online_stations, wait_dict, traffic
-    current_station = 'stc1'
+    global stations_dict, online_stations, wait_dict, traffic, hostname
+    current_station = hostname
     longest_wait = 0
     for station in online_stations:
         if wait_dict[station] >= 3:
             current_station = station
             longest_wait = wait_dict[station]
+        wait_dict[station] += 1
     if longest_wait > 0:
         wait_dict[station] = 0
         print('current station: ', current_station)
+        wait_dict[current_station] = 0
         return current_station
     rank = sorted(stations_dict.items(), key= lambda item: item[1], reverse=True)
     for i in range(len(rank)):
-        if rank[i][0] in online_stations and rank[i][1] > traffic:
+        if rank[i][0] in online_stations and rank[i][1] >= traffic:
             current_station = rank[i][0]
             break
+    wait_dict[current_station] = 0
     print('current station: ', current_station)
     return current_station
 def init():
-    global client, status_update_process
+    global client, status_update_process, hostname, wait_dict
     client.on_connect = on_connect
     client.on_message = on_message
-
-    client.connect("stc1", 1883, 60)
-
+    client.connect(hostname, 1883, 60)
+    # initialize wait_dict and put server in it
+    wait_dict[hostname] = 0
     # start a thread to handle network traffic
     client.loop_start()
     status_update_process.start()
@@ -113,6 +116,8 @@ if __name__ == '__main__':
     client.on_connect = on_connect
     client.on_message = on_message
     client.connect("stc1", 1883, 60)
+    # initialize wait_dict and put server in it
+    wait_dict[hostname] = 0
     client.loop_start()
     status_update_thread.start()
     
