@@ -2,23 +2,16 @@
 from datetime import datetime # time execution time
 startTime = datetime.now()
 
-import picamera
-from picamera.array import PiRGBArray 
 import time
 import numpy as np
 import tensorflow as tf
 from PIL import Image
 import cv2
-# initialize PiCamera 
-camera = picamera.PiCamera()
-camera.resolution = (640,480)
-camera.framerate = 32
-rawCapture = PiRGBArray(camera,size=(320,320))
-camera.capture(rawCapture, 'rgb',resize=(320,320))
-time.sleep(2)
+
 
 # initialize parameters
 min_conf_threshold = 0.5 # 0.35 seems to work well with traffic pic
+car_conf_threshold = 0.75
 imH = 320
 imW = 320
 PATH_TO_LABELS = 'labelmap.txt'
@@ -53,15 +46,6 @@ classes = interpreter.get_tensor(output_details[1]['index'])[0]
 classes = classes + 1
 scores = interpreter.get_tensor(output_details[2]['index'])[0]
 num = interpreter.get_tensor(output_details[3]['index'])[0]
-print("class:")
-print(classes)
-print("scores:")
-print(scores)
-#print("num:")
-#print(num)
-#print(input_shape)
-#print('labels')
-#print(labels)
 
 for i in range(len(scores)):
     if (scores[i] > min_conf_threshold):
