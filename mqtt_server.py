@@ -83,19 +83,26 @@ def choose_current_station():
     print('current station: ', current_station)
     return current_station
 def init():
-    global client
+    global client, status_update_timer
     client.on_connect = on_connect
     client.on_message = on_message
 
     client.connect("stc1", 1883, 60)
 
     # start a thread to handle network traffic
-    #client.loop_start()
-    threading.Timer(20, status_update)
-    client.loop_forever()
+    client.loop_start()
+    status_update_timer = threading.Timer(20, status_update)
+def stop():
+    global client
+    client.loop_stop()
+    status_update_timer.cancel()
 def update_traffic(num):
     global traffic
     traffic = num
 if __name__ == '__main__':
     traffic = int(input('Please type a number to setup traffic for current device: '))
-    init()
+    client.on_connect = on_connect
+    client.on_message = on_message
+    client.connect("stc1", 1883, 60)
+    threading.Timer(20, status_update)
+    client.loop_forever()

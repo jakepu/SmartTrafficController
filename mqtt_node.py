@@ -6,7 +6,11 @@ traffic = 0
 is_go = False
 payload = ""
 hostname = socket.gethostname()
-machine_number = re.search(r'\d+', hostname).group()
+try:
+    machine_number = re.search(r'\d+', hostname).group()
+except: # running on device without setting up stc* hostname
+    import random
+    machine_number = random.randrange(3,10)
 def current_station():
     global is_go, payload
     if int(payload) == machine_number:
@@ -41,18 +45,20 @@ def init():
     client.on_message = on_message
 
     client.connect("stc1")
-    hostname = socket.gethostname()
-    machine_number = re.findall(r'\d+', hostname)[0]
     # Blocking call that processes network traffic, dispatches callbacks and
     # handles reconnecting.
     # Other loop*() functions are available that give a threaded interface and a
     # manual interface.
-    #client.loop_start()
-    client.loop_forever()
-    #client.loop_stop()
+    client.loop_start()
+def stop():
+    global client
+    client.loop_stop()
 def update_traffic(num):
     global traffic
     traffic = num
 if __name__ == '__main__':
-    traffic = int(input('Please type a number to setup traffic for current device'))
-    init()
+    traffic = int(input('Please type a number to setup traffic for current device: '))
+    client.on_connect = on_connect
+    client.on_message = on_message
+    client.connect("stc1")
+    client.loop_forever()
