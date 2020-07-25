@@ -44,6 +44,8 @@ def get_num(flag):
         image_path = 'test_image2.jpg'
     elif flag == 3:
         image_path = 'test_image3.jpg'
+    elif flag == 4:
+        image_path = 'test_image4.jpg'
 
     image = Image.open(image_path)
     image_cv = cv2.imread(image_path)
@@ -97,6 +99,6 @@ def get_num(flag):
     return count
 
 if __name__ == '__main__':
-    num_cars = get_num(3)
+    num_cars = get_num(4)
     print("Number of Cars Detected:")
     print(num_cars)
