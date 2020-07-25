@@ -6,6 +6,7 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 import cv2
+
 MIN_CONF_THRESHHOLD = 0.5 # 0.35 seems to work well with traffic pic
 class DetectCar:
     def __init__(self):
@@ -34,7 +35,10 @@ class DetectCar:
 
         # Test the model on random input data.
         self.input_shape = self.input_details[0]['shape']
+
     def detect(self, pic = 0): 
+        car_count = 0
+
         if pic == 0:
             self.camera.capture('output.jpg')
             image_path = 'output.jpg'
@@ -44,6 +48,7 @@ class DetectCar:
                 image_path = 'test_iamge' + str(pic) + '.jpg'
             except:
                 image_path = pic
+
         image = Image.open(image_path)
         image_cv = cv2.imread(image_path)
         input_data = np.asarray([np.asarray(image)])
@@ -59,15 +64,7 @@ class DetectCar:
         classes = classes + 1
         scores = self.interpreter.get_tensor(self.output_details[2]['index'])[0]
         num = self.interpreter.get_tensor(self.output_details[3]['index'])[0]
-        # print("class:")
-        # print(classes)
-        # print("scores:")
-        # print(scores)
-        #print("num:")
-        #print(num)
-        #print(input_shape)
-        #print('labels')
-        #print(labels)
+        
 
         for i in range(len(scores)):
             if (scores[i] > self.min_conf_threshold):
@@ -81,8 +78,12 @@ class DetectCar:
                 
                 cv2.rectangle(image_cv, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
 
-                # Draw label
                 object_name = self.labels[int(classes[i])] # Look up object name from "labels" array using class index
+                if (scores[i] > self.min_conf_threshold) and ((object_name == 'car') or (object_name == 'motorcycle') or 
+                (object_name == 'bus') or (object_name == 'truck')): 
+                    car_count += 1
+
+                # Draw label
                 label = '%s: %d%%' % (object_name, int(scores[i]*100)) # Example: 'person: 72%'
                 labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.3, 1) # Get font size
                 label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
@@ -95,10 +96,5 @@ class DetectCar:
 
         # Clean up
         #cv2.destroyAllWindows()
-        car_count = 0
-        for i in range(len(scores)):
-            object_name = self.labels[int(classes[i])]
-            if (scores[i] > self.min_conf_threshold) and ((i == 4)
-                    or (i==5) or (i==7) or (i==9)): # 4: car, 5: motorcycle, 7:bus, 9:truck
-                car_count += 1
+            
         return car_count
