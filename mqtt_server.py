@@ -18,13 +18,15 @@ traffic = 0
 wait_dict = {}
 online_stations = []
 client = mqtt.Client()
+SERVICE_VEHICLE_NUM = 0
+checkpoint_counter = 0
 def current_station():
     global is_go, machine_number
     if payload == machine_number:
         is_go = True
     else:
         is_go = False
-def read_message():
+def check_intersection():
     global stations_dict, payload 
     hostname, _, traffic = payload.partition(': Traffic - ')
     stations_dict[hostname] = int(traffic)
@@ -32,9 +34,12 @@ def read_message():
     #wait_dict[hostname] = 1+wait_dict[hostname] if hostname in wait_dict else 1
     if hostname not in wait_dict:
         wait_dict[hostname] = 0
-
+def sum_checkpoint_traffic():
+    global payload, checkpoint_counter
+    checkpoint, _, traffic = payload.partition(': Traffic - ')
+    checkpoint_counter += int(traffic)
 # table of function to call when processing incoming message
-switcher = {"Traffic": read_message, "Current_Station": current_station}
+switcher = {"Traffic": check_intersection, "Current_Station": current_station, "Checkpoint": sum_checkpoint_traffic}
 
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
@@ -42,8 +47,9 @@ def on_connect(client, userdata, flags, rc):
 
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
-    client.subscribe("Traffic")
-    client.subscribe("Current_Station")
+    client.subscribe("Traffic") # nodes at the intersections
+    client.subscribe("Current_Station") # the only station that is open
+    client.subscribe("Checkpoint") # cameras covering the area
     #client.subscribe("Request")
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
@@ -69,26 +75,27 @@ def status_update():
 status_update_process = Process(target = status_update)
 
 def choose_current_station():
-    global stations_dict, online_stations, wait_dict, traffic, hostname
-    current_station = hostname
-    longest_wait = 0
-    for station in online_stations:
-        if wait_dict[station] >= 3:
-            current_station = station
-            longest_wait = wait_dict[station]
-        wait_dict[station] += 1
-    if longest_wait > 0:
-        wait_dict[station] = 0
-        print('current station: ', current_station)
+    global stations_dict, online_stations, wait_dict, traffic, hostname, checkpoint_counter
+    if checkpoint_counter <= SERVICE_VEHICLE_NUM: # if there are traffic in the area, no change in station
+        current_station = hostname
+        longest_wait = 0
+        for station in online_stations:
+            if wait_dict[station] >= 3:
+                current_station = station
+                longest_wait = wait_dict[station]
+            wait_dict[station] += 1
+        if longest_wait > 0:
+            wait_dict[station] = 0
+            print('current station: ', current_station)
+            wait_dict[current_station] = 0
+            return current_station
+        rank = sorted(stations_dict.items(), key= lambda item: item[1], reverse=True)
+        for i in range(len(rank)):
+            if rank[i][0] in online_stations and rank[i][1] >= traffic:
+                current_station = rank[i][0]
+                break
         wait_dict[current_station] = 0
-        return current_station
-    rank = sorted(stations_dict.items(), key= lambda item: item[1], reverse=True)
-    for i in range(len(rank)):
-        if rank[i][0] in online_stations and rank[i][1] >= traffic:
-            current_station = rank[i][0]
-            break
-    wait_dict[current_station] = 0
-    print('current station: ', current_station)
+        print('current station: ', current_station)
     return current_station
 def init():
     global client, status_update_process, hostname, wait_dict
@@ -107,8 +114,9 @@ def stop():
 def update_traffic(num):
     global traffic
     traffic = num
-def test_print():
-    print('prints every 5 secs')
+def update_service_vehicle_num(num):
+    global SERVICE_VEHICLE_NUM
+    SERVICE_VEHICLE_NUM = num
 if __name__ == '__main__':
     from threading import Thread
     traffic = int(input('Please type a number to setup traffic for current device: '))
