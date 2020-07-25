@@ -45,7 +45,7 @@ class DetectCar:
         else:
             try:
                 int(pic)
-                image_path = 'test_iamge' + str(pic) + '.jpg'
+                image_path = 'test_image' + str(pic) + '.jpg'
             except:
                 image_path = pic
 
@@ -98,3 +98,6 @@ class DetectCar:
         #cv2.destroyAllWindows()
             
         return car_count
+if __name__ == '__main__':
+    detector = DetectCar()
+    print('Number of traffic:', detector.detect(1))
