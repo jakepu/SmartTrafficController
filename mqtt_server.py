@@ -20,6 +20,7 @@ online_stations = []
 client = mqtt.Client()
 SERVICE_VEHICLE_NUM = 0
 checkpoint_counter = 0
+current_station_name = hostname
 def current_station():
     global is_go, machine_number
     if payload == machine_number:
@@ -60,43 +61,44 @@ def on_message(client, userdata, msg):
     func()
 
 def request():
-    global client, stations_dict, online_stations, hostname
+    global client, stations_dict, online_stations, hostname, checkpoint_counter
     stations_dict.clear()
     online_stations = [hostname]
+    checkpoint_counter = 0
     client.publish("Request", 1)
 def status_update():
     global hostname, traffic, stations_dict
     while True:
         request()
-        sleep(2) # wait for other stations to feedback their traffic
+        sleep(5) # wait for other stations to feedback their traffic
         stations_dict[hostname] = int(traffic) # input the server's own traffic
         choose_current_station()
-        sleep(5)
+        sleep(10)
 status_update_process = Process(target = status_update)
 
 def choose_current_station():
-    global stations_dict, online_stations, wait_dict, traffic, hostname, checkpoint_counter
+    global stations_dict, online_stations, wait_dict, traffic, hostname, checkpoint_counter, current_station_name
     if checkpoint_counter <= SERVICE_VEHICLE_NUM: # if there are traffic in the area, no change in station
-        current_station = hostname
+        current_station_name = hostname
         longest_wait = 0
         for station in online_stations:
             if wait_dict[station] >= 3:
-                current_station = station
+                current_station_name = station
                 longest_wait = wait_dict[station]
             wait_dict[station] += 1
         if longest_wait > 0:
             wait_dict[station] = 0
-            print('current station: ', current_station)
-            wait_dict[current_station] = 0
-            return current_station
+            print('current station: ', current_station_name)
+            wait_dict[current_station_name] = 0
+            return current_station_name
         rank = sorted(stations_dict.items(), key= lambda item: item[1], reverse=True)
         for i in range(len(rank)):
             if rank[i][0] in online_stations and rank[i][1] >= traffic:
-                current_station = rank[i][0]
+                current_station_name = rank[i][0]
                 break
-        wait_dict[current_station] = 0
-        print('current station: ', current_station)
-    return current_station
+        wait_dict[current_station_name] = 0
+    print('current station: ', current_station_name)
+    return current_station_name
 def init():
     global client, status_update_process, hostname, wait_dict
     client.on_connect = on_connect

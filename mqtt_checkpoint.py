@@ -30,7 +30,7 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     global payload, switcher
     payload = msg.payload
-    print('msg.topic: ', msg.topic, '\n', 'msg.payload: ', msg.payload)
+    print('msg.topic: ', msg.topic, 'msg.payload: ', msg.payload)
     func = switcher.get(msg.topic)
     if func is not None:
         func()
