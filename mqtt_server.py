@@ -2,11 +2,11 @@
 
 import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
-#from threading import Thread
+from threading import Thread
 from time import sleep
 import re
 from socket import gethostname
-import car_detection_TF_demo
+import car_detection_TF_demo as car_detection_TF
 hostname = gethostname() # should be stc1
 machine_number = re.search(r'\d+', hostname).group()
 NUM_STATIONS = 2
@@ -76,9 +76,11 @@ def status_update():
         sleep(5) # wait for other stations to feedback their traffic
         if real_time_detection_flag:
             traffic = detector.detect()
+        print(hostname, 'traffic:', traffic)
         stations_dict[hostname] = int(traffic) # input the server's own traffic
         choose_current_station()
         sleep(10)
+    return
 
 def choose_current_station():
     global stations_dict, online_stations, wait_dict, traffic, hostname, checkpoint_counter, current_station_name
@@ -124,10 +126,13 @@ def update_service_vehicle_num(num):
     global SERVICE_VEHICLE_NUM
     SERVICE_VEHICLE_NUM = num
 if __name__ == '__main__':
-    from threading import Thread
+    # input:
+    #           >=0     - fixed traffic
+    #           <0     - analyze input from video |input|.mp4
     traffic = int(input('Please type a number to setup traffic for current device: '))
     if traffic < 0:
         real_time_detection_flag = True
+        detector = car_detection_TF.DetectCar(str(-traffic))
         traffic = 0
     else:
         real_time_detection_flag = False
@@ -138,7 +143,7 @@ if __name__ == '__main__':
     # initialize wait_dict and put server in it
     wait_dict[hostname] = 0
     client.loop_start()
-    status_update_online = False
+    status_update_online = True
     status_update_thread.start()
     
     

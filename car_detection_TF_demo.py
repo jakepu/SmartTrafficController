@@ -5,6 +5,8 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 import cv2
+from threading import Thread
+from time import sleep
 
 MIN_CONF_THRESHHOLD = 0.5 # 0.35 seems to work well with traffic pic
 class DetectCar:
@@ -46,18 +48,8 @@ class DetectCar:
                 self.stream.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 (self.grabbed, self.frame) = self.stream.read()
             sleep(0.1)
-    def detect(self, pic = 0): 
+    def detect(self): 
         car_count = 0
-
-        if pic == 0:
-            self.camera.capture('output.jpg')
-            image_path = 'output.jpg'
-        else:
-            try:
-                int(pic)
-                image_path = 'test_image' + str(pic) + '.jpg'
-            except:
-                image_path = pic
 
         image = cv2.cvtColor(self.frame.copy(), cv2.COLOR_BGR2RGB)
         image_cv = self.frame.copy()
@@ -65,8 +57,8 @@ class DetectCar:
         self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
         startTime_invoke = datetime.now()
         self.interpreter.invoke()
-        print('Inference time:')
-        print(datetime.now() - startTime_invoke)
+        #print('Inference time:')
+        #print(datetime.now() - startTime_invoke)
         # The function `get_tensor()` returns a copy of the tensor data.
         # Use `tensor()` in order to get a pointer to the tensor.
         boxes = self.interpreter.get_tensor(self.output_details[0]['index'])[0]
@@ -102,7 +94,7 @@ class DetectCar:
 
         # All the results have been drawn on the image, now display the image
         cv2.imshow('Object detector', image_cv)
-        cv2.waitKey(1)
+        cv2.waitKey(500)
 
         # Clean up
         #cv2.destroyAllWindows()
