@@ -50,7 +50,8 @@ class DetectCar:
                 image_path = pic
 
         image = Image.open(image_path)
-        image_cv = cv2.imread(image_path)
+        image = image.resize((self.imW, self.imH))
+        image_cv = cv2.imread(image_path) # keep in mind that cv2 open in BGR format
         input_data = np.asarray([np.asarray(image)])
         self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
         startTime_invoke = datetime.now()
