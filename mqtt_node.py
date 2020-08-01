@@ -1,11 +1,13 @@
 import paho.mqtt.client as mqtt
 import socket # socket.gethostname()
 import re
+import car_detection_TF
 client = mqtt.Client()
 traffic = 0
 is_go = False
 payload = ""
 hostname = socket.gethostname()
+detector = car_detection_TF.DetectCar()
 try:
     machine_number = re.search(r'\d+', hostname).group()
 except: # running on device without setting up stc* hostname
@@ -18,7 +20,8 @@ def current_station():
     else:
         is_go = False
 def request_received():
-    global client, payload, hostname
+    global client, payload, hostname, traffic
+    traffic = detector.detect()
     payload = hostname + ": Traffic - " + str(traffic)
     client.publish("Traffic", payload = payload)
 
