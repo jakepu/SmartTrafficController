@@ -6,7 +6,7 @@ import paho.mqtt.publish as publish
 from time import sleep
 import re
 from socket import gethostname
-import car_detection_TF
+import car_detection_TF_demo
 hostname = gethostname() # should be stc1
 machine_number = re.search(r'\d+', hostname).group()
 NUM_STATIONS = 2
