@@ -2,7 +2,7 @@
 
 import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
-#from threading import Thread
+from threading import Thread
 from time import sleep
 import re
 from socket import gethostname
@@ -76,9 +76,11 @@ def status_update():
         sleep(5) # wait for other stations to feedback their traffic
         if real_time_detection_flag:
             traffic = detector.detect()
+        print(hostname, 'traffic:', traffic)
         stations_dict[hostname] = int(traffic) # input the server's own traffic
         choose_current_station()
         sleep(10)
+    return
 
 def choose_current_station():
     global stations_dict, online_stations, wait_dict, traffic, hostname, checkpoint_counter, current_station_name
@@ -138,7 +140,7 @@ if __name__ == '__main__':
     # initialize wait_dict and put server in it
     wait_dict[hostname] = 0
     client.loop_start()
-    status_update_online = False
+    status_update_online = True
     status_update_thread.start()
     
     
