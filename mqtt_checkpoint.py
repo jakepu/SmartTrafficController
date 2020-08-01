@@ -8,6 +8,7 @@ is_go = False
 payload = ""
 hostname = socket.gethostname()
 detector = car_detection_TF.DetectCar()
+real_time_detection_flag = False
 try:
     machine_number = re.search(r'\d+', hostname).group()
 except: # running on device without setting up stc* hostname
@@ -15,7 +16,8 @@ except: # running on device without setting up stc* hostname
     machine_number = random.randrange(3,10)
 def request_received():
     global client, payload, hostname, traffic
-    traffic = detector.detect()
+    if real_time_detection_flag:
+        traffic = detector.detect()
     payload = hostname + ": Traffic - " + str(traffic)
     client.publish("Checkpoint", payload = payload)
 
@@ -57,6 +59,11 @@ def update_traffic(num):
     traffic = num
 if __name__ == '__main__':
     traffic = int(input('Please type a number to setup traffic for current device: '))
+    if traffic < 0:
+        real_time_detection_flag = True
+        traffic = 0
+    else:
+        real_time_detection_flag = False
     client.on_connect = on_connect
     client.on_message = on_message
     client.connect("stc1")

@@ -23,6 +23,7 @@ checkpoint_counter = 0
 current_station_name = hostname
 status_update_online = False
 detector = car_detection_TF.DetectCar()
+real_time_detection_flag = False
 def current_station():
     global is_go, machine_number
     if payload == machine_number:
@@ -73,7 +74,8 @@ def status_update():
     while status_update_online:
         request()
         sleep(5) # wait for other stations to feedback their traffic
-        traffic = detector.detect()
+        if real_time_detection_flag:
+            traffic = detector.detect()
         stations_dict[hostname] = int(traffic) # input the server's own traffic
         choose_current_station()
         sleep(10)
@@ -124,6 +126,11 @@ def update_service_vehicle_num(num):
 if __name__ == '__main__':
     from threading import Thread
     traffic = int(input('Please type a number to setup traffic for current device: '))
+    if traffic < 0:
+        real_time_detection_flag = True
+        traffic = 0
+    else:
+        real_time_detection_flag = False
     status_update_thread = Thread(target = status_update)
     client.on_connect = on_connect
     client.on_message = on_message
