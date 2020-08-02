@@ -1,7 +1,6 @@
 import paho.mqtt.client as mqtt
 import socket # socket.gethostname()
 import re
-import car_detection_TF_demo
 client = mqtt.Client()
 traffic = 0
 is_go = False
@@ -60,6 +59,8 @@ def update_traffic(num):
 if __name__ == '__main__':
     traffic = int(input('Please type a number to setup traffic for current device: '))
     if traffic < 0:
+        import car_detection_TF
+        detector = car_detection_TF.DetectCar()
         real_time_detection_flag = True
         traffic = 0
     else:
